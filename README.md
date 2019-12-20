@@ -10,3 +10,4 @@ import pandas as pd
 import numpy as np
 
 pd.read_cvs('넷플릭스에 올라올까.ipynb')
+'''
