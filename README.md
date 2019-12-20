@@ -59,10 +59,116 @@
 
 #### 머신러닝 코드
 
--kaggle에 올라와 있는 Female/Male Classification(https://www.kaggle.com/yungbyun/female-male-classification)을 상당 부분 이용하였습니다.
+- kaggle에 올라와 있는 Female/Male Classification(https://www.kaggle.com/yungbyun/female-male-classification)을 상당 부분 이용하였습니다.
 
 ```python
 import numpy as np
 import pandas as pd
 ```
-onNetflix.csv를 다루기 위해 import합니다.
+ onNetflix.csv를 다루기 위해 import합니다.
+
+```python
+netflix = pd.read_csv('onNetflix.csv')
+netflix.head(10)
+```
+ 앞에서 살펴본 onNetflix.csv 파일을 불러오고 일부를 확인합니다.
+ 
+```python
+from sklearn.preprocessing import LabelEncoder
+
+encoder = LabelEncoder()
+encoder.fit(netflix['Country'])
+netflix['Country'] = encoder.transform(netflix['Country'])
+netflix.head(3)
+
+encoder.fit(netflix['Genre'])
+netflix['Genre'] = encoder.transform(netflix['Genre'])
+netflix.head(3)
+
+encoder.fit(netflix['Company'])
+netflix['Company'] = encoder.transform(netflix['Company'])
+netflix.head(3)
+```
+ onNetflix.csv의 컬럼 중, Country, Genre, Company는 문자열 정보를 담고 있지만 학습에 유의미한 영향을 미칠 수 있습니다(특히 Company). 따라서 sklearn을 이용해 머신러닝을 할 수 있도록 정수값으로 바꾸어야 하는데, 각 문자열의 정보가 자연어로써 의미있고 관계를 맺는 것이 아니라 단지 구분만 가능하면 되기 때문에 label encoding 방식으로 인코딩해줍니다. 위에서부터 각각 Country, Genre, Company 컬럼을 인코딩하고 확인합니다.
+
+```python
+netflix_prepared = netflix.drop('Name', axis=1, inplace=False)
+```
+ 학습과 예측에 거의 의미가 없는 Name 컬럼을 제거하였습니다.
+
+```python
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+def display_heatmap(df):
+    plt.figure(figsize=(15, 10))
+    sns.heatmap(df.corr(), annot=True, cmap='cubehelix_r')
+    plt.show()
+    
+display_heatmap(netflix)
+```
+ 필요한 모듈을 import하고 학습 이전에 heatmap을 생성해 컬럼별 연관성을 확인했습니다.
+ 서로 크게 영향을 주지 않는 것을 확인했습니다.
+
+```python
+from sklearn.model_selection import train_test_split
+
+train, test = train_test_split(netflix_prepared, test_size = 0.25)
+
+train_X = train.drop('Netflix', axis=1, inplace=False)
+print(train_X)
+train_Y = train['Netflix']
+print(train_Y)
+
+test_X = test.drop('Netflix', axis=1, inplace=False)
+print(test_X)
+test_Y = test['Netflix']
+print(test_Y)
+```
+ 전처리를 완료한 데이터를 train 세트와 test 세트로 나누었습니다. Netflix 컬럼의 값을 레이블로 학습하고 예측하게 될 것입니다.
+
+```python
+from sklearn.linear_model import LogisticRegression
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn import svm
+from sklearn import metrics
+from sklearn.tree import DecisionTreeClassifier
+
+import warnings
+warnings.filterwarnings('ignore')
+
+nf_svm = svm.SVC()
+nf_svm.fit(train_X, train_Y)
+prediction = nf_svm.predict(test_X)
+
+print('인식률:', metrics.accuracy_score(prediction, test_Y) * 100)
+```
+ 학습과 예측에 필요한 모듈을 모두 import했습니다.
+ 서포트 벡터 머신 알고리즘에서 약 36.36퍼센트의 인식률을 보였습니다.
+ 
+```python
+nf_lr = LogisticRegression()
+nf_lr.fit(train_X, train_Y)
+prediction = nf_lr.predict(test_X)
+print('인식률:', metrics.accuracy_score(prediction, test_Y) * 100)
+```
+ 논리 회귀 알고리즘에서 약 63.63퍼센트의 인식률을 보였습니다.
+
+```python
+nf_dt = DecisionTreeClassifier()
+nf_dt.fit(train_X,train_Y)
+prediction = nf_dt.predict(test_X)
+print('인식률:',metrics.accuracy_score(prediction,test_Y) * 100)
+```
+ 결정 트리 알고리즘에서 약 45.45퍼센트의 인식률을 보였습니다.
+
+```python
+nf_knn = KNeighborsClassifier(n_neighbors=3)
+nf_knn.fit(train_X,train_Y)
+prediction = nf_knn.predict(test_X)
+print('인식률:',metrics.accuracy_score(prediction,test_Y) * 100)
+```
+ 근접 이웃 알고리즘에서 약 63.63퍼센트의 인식률을 보였습니다.
+
+### 나가며
+- 63.63퍼센트의 생각보다 높은 인식률을 보였지만, 데이터를 수집하는 과정이 완전한 무작위가 아니었기 때문에 적절하지 않았고, 표본의 수가 지나치게 적었습니다.
